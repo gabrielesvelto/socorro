@@ -198,6 +198,7 @@ class CSignatureTool:
         line=None,
         module_offset=None,
         offset=None,
+        unloaded_modules=None,
     ):
         """Normalizes a single frame
 
@@ -226,8 +227,14 @@ class CSignatureTool:
             return f"{file}#{line}"
 
         # If there's an offset and no module/module_offset, use that
-        if not module and not module_offset and offset:
-            return f"@{strip_leading_zeros(offset)}"
+        if not module and not module_offset:
+            if unloaded_modules and len(unloaded_modules) > 0:
+                return "{}@{}".format(
+                    unloaded_modules[0].get("module"),
+                    strip_leading_zeros(unloaded_modules[0].get("offsets")[0]),
+                )
+            elif offset:
+                return f"@{strip_leading_zeros(offset)}"
 
         # Return module/module_offset
         return "{}@{}".format(module or "", strip_leading_zeros(module_offset))
@@ -262,6 +269,8 @@ class CSignatureTool:
                 "line": frame.get("line"),
                 "module_offset": frame.get("module_offset"),
                 "offset": frame.get("offset"),
+                # unloaded modules can only appear in non-inlined frames
+                "unloaded_modules": frame.get("unloaded_modules"),
             }
 
     def create_frame_list(self, thread_data, make_modules_lower_case=False):
